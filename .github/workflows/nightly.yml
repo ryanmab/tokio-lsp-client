@@ -1,0 +1,73 @@
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "7 7 * * *"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+name: Nightly
+
+jobs:
+  nightly:
+    runs-on: ubuntu-latest
+    name: Test (nightly)
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install nightly
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rust-analyzer # for `tests/rust-analyzer.rs`
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: 'tests/fixtures/go/mock-project/go.mod'
+
+      - name: Install gopls
+        # for `tests/gopls.rs`
+        run: go install golang.org/x/tools/gopls@latest 
+
+      - name: cargo test --locked
+        run: cargo test --locked --all-features --all-targets
+
+      - name: cargo test --doc
+        run: cargo test --locked --all-features --doc
+
+  update:
+    runs-on: ubuntu-latest
+    name: Test (beta / updated)
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install nightly
+        uses: dtolnay/rust-toolchain@beta
+        with:
+          components: rust-analyzer # for `tests/rust-analyzer.rs`
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: 'tests/fixtures/go/mock-project/go.mod'
+
+      - name: Install gopls
+        # for `tests/gopls.rs`
+        run: go install golang.org/x/tools/gopls@latest 
+
+      - name: cargo update
+        run: cargo update
+
+      - name: cargo test
+        run: cargo test --locked --all-features --all-targets
+        env:
+          RUSTFLAGS: -D deprecated
+
+      - name: cargo test --doc
+        run: cargo test --locked --all-features --doc
+        env:
+          RUSTFLAGS: -D deprecated
