@@ -30,4 +30,4 @@ uuid = { version = "1.19.0", features = ["v4"] }
 [dev-dependencies]
 test-log = "0.2.21"
 tokio-test = "0.4.6"
-rstest = "0.27.0"
+rstest = "0.28.0"
